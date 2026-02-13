@@ -116,14 +116,30 @@ export default function RegisterPage() {
      return value.replace(/\D/g, '')
   }
 
-  const handleNextStep = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name || !email || !password || !companyName) {
       setError("Por favor, preencha todos os campos")
       return
     }
     setError("")
-    setStep(2)
+    setIsLoading(true)
+
+    try {
+      const registerResponse = await authApi.register({ name, email, password, companyName })
+
+      if (registerResponse.success && registerResponse.data) {
+          authHelpers.setAuth(registerResponse.data.user, registerResponse.data.token)
+          router.push("/dashboard")
+      } else {
+          setError(registerResponse.error || "Erro ao criar conta. Tente novamente.")
+      }
+    } catch (err) {
+      console.error(err)
+      setError("Erro inesperado. Tente novamente.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePlanSelection = (planId: string) => {
@@ -241,10 +257,10 @@ export default function RegisterPage() {
           <Card className="border-border bg-card animate-in fade-in slide-in-from-bottom-4 duration-500">
             <CardHeader>
               <CardTitle className="text-xl">Dados da Conta</CardTitle>
-              <CardDescription>Preencha seus dados para avançar</CardDescription>
+              <CardDescription>Preencha seus dados para criar sua conta</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleNextStep} className="space-y-4">
+              <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome Completo</Label>
                   <Input
@@ -291,9 +307,17 @@ export default function RegisterPage() {
 
                 {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
 
-                <Button type="submit" className="w-full gap-2 group">
-                  Continuar
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <Button type="submit" className="w-full gap-2 group" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Criando conta...
+                    </>
+                  ) : (
+                    <>
+                      Criar Conta
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
                 </Button>
               </form>
 
